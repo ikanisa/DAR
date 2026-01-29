@@ -23,6 +23,8 @@
         "node_modules",
         "dist",
         "db",
-        "migrations"
+        "migrations",
+        "src/__tests__",
+        "src/**/*.test.ts"
     ]
 }

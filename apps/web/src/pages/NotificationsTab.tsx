@@ -6,9 +6,9 @@
  */
 
 import { useState, useEffect } from 'react';
-import { ClayCard } from '../components/ui/ClayCard';
-import { ClayButton } from '../components/ui/ClayButton';
-import { BentoGrid, BentoItem } from '../components/ui/BentoGrid';
+import { ClayCard } from '@dar/ui';
+import { ClayButton } from '@dar/ui';
+import { BentoGrid, BentoItem } from '@dar/ui';
 import { useSession } from '../lib/SessionContext';
 import { fetchNotifications, markNotificationRead, markAllNotificationsRead } from '../lib/moltbotActions';
 import { Loader2, Bell, BellOff, Sparkles, MessageCircle, CheckCheck, ExternalLink } from 'lucide-react';

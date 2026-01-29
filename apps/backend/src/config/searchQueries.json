@@ -1,0 +1,27 @@
+{
+    "queries": [
+        "site:.mt apartment for rent Malta",
+        "site:.mt property for sale Malta",
+        "Sliema apartment rent Malta",
+        "Valletta apartment for sale Malta",
+        "St Julian's property rent Malta",
+        "Gzira flat for rent Malta",
+        "Malta penthouse for sale",
+        "Mellieha house rent Malta",
+        "site:remax-malta.com apartment",
+        "site:frank.com.mt property",
+        "site:maltapark.com apartment rent",
+        "site:propertymarket.com.mt sale",
+        "Bugibba apartment for sale Malta",
+        "Marsaskala flat rent Malta",
+        "Mosta property for sale Malta",
+        "Birkirkara apartment Malta",
+        "Qawra holiday rental Malta",
+        "Rabat house for sale Malta",
+        "Attard villa rent Malta",
+        "Swieqi property Malta"
+    ],
+    "rotationDays": 7,
+    "queriesPerDay": 10,
+    "description": "Malta property search query templates for AI discovery. Queries are rotated daily to maximize coverage while staying within API quotas."
+}

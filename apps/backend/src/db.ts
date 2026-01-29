@@ -33,6 +33,12 @@ export function getPool(): pg.Pool {
     return pool;
 }
 
+// ALIAS for db object usage in some modules
+export const db = {
+    query,
+    getPool
+};
+
 export async function query<T extends pg.QueryResultRow>(
     text: string,
     params?: unknown[]

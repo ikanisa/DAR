@@ -5,7 +5,7 @@
  */
 
 import { Bell, MessageCircle, Package, Star, AlertCircle, CheckCircle, X } from 'lucide-react';
-import { WebNotification } from '../../lib/types';
+import { WebNotification } from '@dar/core';
 
 interface NotificationCardProps {
     notification: WebNotification;

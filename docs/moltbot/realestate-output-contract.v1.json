@@ -1,0 +1,321 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "realestate-output-contract.v1",
+    "title": "Real Estate Agent Output Contract (Seeker/Poster)",
+    "description": "JSON Schema for validating Moltbot seeker and poster agent outputs",
+    "type": "object",
+    "required": [
+        "thought",
+        "action",
+        "params"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "thought": {
+            "type": "string",
+            "description": "Agent reasoning explaining why this action was chosen based on user intent and context.",
+            "minLength": 10,
+            "maxLength": 500
+        },
+        "action": {
+            "type": "string",
+            "description": "The action to execute",
+            "enum": [
+                "ask_user",
+                "search_properties",
+                "refine_criteria",
+                "show_shortlist",
+                "create_draft",
+                "update_draft",
+                "submit_for_review",
+                "schedule_viewing",
+                "inquire_listing",
+                "show_listing_details",
+                "save_to_favorites",
+                "notify_poster"
+            ]
+        },
+        "params": {
+            "type": "object",
+            "description": "Parameters for the action. Required fields vary by action.",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "description": "User-facing message for ask_user, show_* actions",
+                    "maxLength": 2000
+                },
+                "listing_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID of the listing"
+                },
+                "draft_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID of the draft listing"
+                },
+                "criteria": {
+                    "type": "object",
+                    "description": "Search criteria for search_properties / refine_criteria",
+                    "properties": {
+                        "location": {
+                            "type": "string"
+                        },
+                        "min_price": {
+                            "type": "number",
+                            "minimum": 0
+                        },
+                        "max_price": {
+                            "type": "number",
+                            "minimum": 0
+                        },
+                        "bedrooms": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "bathrooms": {
+                            "type": "integer",
+                            "minimum": 0
+                        },
+                        "property_type": {
+                            "type": "string",
+                            "enum": [
+                                "apartment",
+                                "house",
+                                "villa",
+                                "penthouse",
+                                "studio",
+                                "maisonette",
+                                "farmhouse",
+                                "other"
+                            ]
+                        },
+                        "features": {
+                            "type": "array",
+                            "items": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "patch": {
+                    "type": "object",
+                    "description": "Fields to update for update_draft",
+                    "additionalProperties": true
+                },
+                "candidates": {
+                    "type": "array",
+                    "description": "List of listing candidates for show_shortlist",
+                    "maxItems": 20,
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "listing_id",
+                            "title"
+                        ],
+                        "properties": {
+                            "listing_id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "title": {
+                                "type": "string"
+                            },
+                            "price": {
+                                "type": "number"
+                            },
+                            "location": {
+                                "type": "string"
+                            },
+                            "match_score": {
+                                "type": "number",
+                                "minimum": 0,
+                                "maximum": 1
+                            },
+                            "match_reasons": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "viewing": {
+                    "type": "object",
+                    "description": "Viewing details for schedule_viewing",
+                    "properties": {
+                        "listing_id": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "proposed_dates": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "format": "date-time"
+                            }
+                        },
+                        "notes": {
+                            "type": "string",
+                            "maxLength": 500
+                        }
+                    }
+                },
+                "inquiry": {
+                    "type": "object",
+                    "description": "Inquiry details for inquire_listing",
+                    "properties": {
+                        "listing_id": {
+                            "type": "string",
+                            "format": "uuid"
+                        },
+                        "message": {
+                            "type": "string",
+                            "maxLength": 1000
+                        },
+                        "contact_preference": {
+                            "type": "string",
+                            "enum": [
+                                "email",
+                                "phone",
+                                "whatsapp",
+                                "in_app"
+                            ]
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "ask_user"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "message"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "search_properties"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "criteria"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "show_shortlist"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "candidates",
+                            "message"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "update_draft"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "draft_id",
+                            "patch"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "submit_for_review"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "draft_id"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "schedule_viewing"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "viewing"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "inquire_listing"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "inquiry"
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -5,12 +5,13 @@
  */
 
 import { useSession } from '../lib/SessionContext';
-import { ClayCard } from '../components/ui/ClayCard';
-import { ClayButton } from '../components/ui/ClayButton';
+import { ClayCard } from '@dar/ui';
+import { ClayButton } from '@dar/ui';
 import {
     User, Package, Store, MessageCircle, Star,
-    Settings, LogOut, Plus, ChevronRight
+    Settings, LogOut, Plus, ChevronRight, ShieldAlert, Calendar
 } from 'lucide-react';
+import { useAdmin } from '../hooks/useAdmin';
 
 interface ProfileViewProps {
     onNavigate?: (tab: string) => void;
@@ -18,6 +19,7 @@ interface ProfileViewProps {
 
 export function ProfileView({ onNavigate }: ProfileViewProps) {
     const { sessionId } = useSession();
+    const { isAdmin } = useAdmin();
 
     // Quick stats (would be fetched from DB in production)
     const stats = {
@@ -59,6 +61,23 @@ export function ProfileView({ onNavigate }: ProfileViewProps) {
                     </div>
                 </div>
             </ClayCard>
+
+            {/* Admin Dashboard */}
+            {isAdmin && (
+                <button
+                    onClick={() => onNavigate?.('admin')}
+                    className="w-full flex items-center gap-4 p-4 bg-gradient-to-r from-red-500/20 to-orange-500/20 border border-red-500/30 rounded-xl hover:border-red-400/50 transition-all"
+                >
+                    <div className="w-10 h-10 bg-red-500/20 rounded-lg flex items-center justify-center">
+                        <ShieldAlert size={20} className="text-red-400" />
+                    </div>
+                    <div className="flex-1 text-left">
+                        <p className="font-bold text-red-200">Admin Dashboard</p>
+                        <p className="text-xs text-red-200/70">Manage risks and approvals</p>
+                    </div>
+                    <ChevronRight size={18} className="text-red-400" />
+                </button>
+            )}
 
             {/* Quick actions */}
             <div className="space-y-2">
@@ -116,6 +135,20 @@ export function ProfileView({ onNavigate }: ProfileViewProps) {
                     <div className="flex-1 text-left">
                         <p className="font-medium">Saved Items</p>
                         <p className="text-xs text-text-muted">{stats.favorites} favorites</p>
+                    </div>
+                    <ChevronRight size={18} className="text-text-muted" />
+                </button>
+
+                <button
+                    onClick={() => onNavigate?.('viewings')}
+                    className="w-full flex items-center gap-4 p-4 bg-clay-card border border-white/10 rounded-xl hover:border-clay-action/50 transition-all"
+                >
+                    <div className="w-10 h-10 bg-cyan-500/20 rounded-lg flex items-center justify-center">
+                        <Calendar size={20} className="text-cyan-400" />
+                    </div>
+                    <div className="flex-1 text-left">
+                        <p className="font-medium">My Viewings</p>
+                        <p className="text-xs text-text-muted">Manage scheduled visits</p>
                     </div>
                     <ChevronRight size={18} className="text-text-muted" />
                 </button>

@@ -6,8 +6,8 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { ClayCard } from '../ui/ClayCard';
-import { ClayButton } from '../ui/ClayButton';
+import { ClayCard } from '@dar/ui';
+import { ClayButton } from '@dar/ui';
 import {
     Send, ArrowLeft, Package, Wrench, Check, Loader2
 } from 'lucide-react';
@@ -70,7 +70,7 @@ export function CreateListingFlow({
         setMessages([userMsg]);
 
         try {
-            const response = await sendMessageToMoltbot(initialMessage, [userMsg], sessionId);
+            const response = await sendMessageToMoltbot(initialMessage, sessionId);
             setMessages(prev => [...prev, response]);
 
             // Check if listing was created
@@ -102,7 +102,7 @@ export function CreateListingFlow({
         setLoading(true);
 
         try {
-            const response = await sendMessageToMoltbot(text, [...messages, userMsg], sessionId);
+            const response = await sendMessageToMoltbot(text, sessionId);
             setMessages(prev => [...prev, response]);
 
             // Check for completed listing actions
@@ -236,7 +236,7 @@ export function CreateListingFlow({
                     <div key={idx}>
                         <div className={msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'}>
                             <ClayCard
-                                variant={msg.role === 'user' ? 'primary' : 'secondary'}
+                                variant={msg.role === 'user' ? 'primary' : undefined}
                                 className={`max-w-[85%] ${msg.role === 'user' ? '!bg-clay-action !text-white' : ''}`}
                             >
                                 <p className="whitespace-pre-wrap text-sm leading-relaxed">{msg.content}</p>

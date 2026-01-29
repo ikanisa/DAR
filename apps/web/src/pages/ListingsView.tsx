@@ -5,11 +5,11 @@
  */
 
 import { useState, useEffect } from 'react';
-import { ClayButton } from '../components/ui/ClayButton';
+import { ClayButton } from '@dar/ui';
 import { ListingCard } from '../components/listings/ListingCard';
 import { VendorCard } from '../components/listings/VendorCard';
 import { fetchPublishedListings, fetchVerifiedVendors } from '../lib/moltbotActions';
-import { ProductListing, Vendor } from '../lib/types';
+import { ProductListing, Vendor } from '@dar/core';
 import { Filter, Grid, List, Loader2 } from 'lucide-react';
 
 type ViewMode = 'grid' | 'list';

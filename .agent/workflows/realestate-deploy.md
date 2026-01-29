@@ -13,7 +13,7 @@ Production-ready Docker Compose deployment for all services.
 Create deployable infrastructure with:
 - Postgres with volume persistence
 - Backend API
-- PWA (Next.js)
+- Web PWA (Vite + React)
 - Moltbot gateway (loopback only)
 - Health checks
 - Security best practices
@@ -90,11 +90,11 @@ services:
       - internal
     restart: unless-stopped
 
-  pwa:
+  web:
     build:
-      context: ../apps/pwa
+      context: ../apps/web
       dockerfile: Dockerfile
-    container_name: realestate-pwa
+    container_name: realestate-web
     environment:
       BACKEND_URL: http://backend:3001
       BACKEND_SERVICE_TOKEN: ${SERVICE_TOKEN}
@@ -143,7 +143,7 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./certs:/etc/nginx/certs:ro
     depends_on:
-      - pwa
+      - web
       - backend
     networks:
       - internal
@@ -191,8 +191,8 @@ events {
 }
 
 http {
-    upstream pwa {
-        server pwa:3000;
+    upstream web {
+        server web:3000;
     }
     
     upstream backend {
@@ -208,7 +208,7 @@ http {
         
         # PWA static files
         location / {
-            proxy_pass http://pwa;
+            proxy_pass http://web;
             proxy_http_version 1.1;
             proxy_set_header Upgrade $http_upgrade;
             proxy_set_header Connection 'upgrade';
@@ -261,25 +261,23 @@ CMD ["node", "dist/server.js"]
 
 ---
 
-## PWA Dockerfile
+## Web PWA Dockerfile
 
 ```dockerfile
-# apps/pwa/Dockerfile
+# apps/web/Dockerfile
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY . .
 RUN npm run build
 
 FROM node:22-alpine
 WORKDIR /app
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/public ./public
+RUN npm install -g serve
+COPY --from=builder /app/dist ./dist
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["serve", "-s", "dist", "-l", "3000"]
 ```
 
 ---
@@ -370,7 +368,7 @@ cat backup.sql | docker compose exec -T postgres psql -U realestate realestate
 
 - [ ] `docker compose up -d` works from VPS
 - [ ] All health checks pass
-- [ ] PWA accessible on port 80
+- [ ] Web PWA accessible on port 80
 - [ ] API accessible at /api
 - [ ] Gateway only on 127.0.0.1:18789
 - [ ] Postgres data persists across restarts

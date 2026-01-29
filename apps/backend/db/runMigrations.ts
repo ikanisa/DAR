@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import pg from 'pg';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const migrationsDir = join(__dirname, '..', 'migrations');
+const migrationsDir = join(__dirname, '..', '..', '..', 'supabase', 'migrations');
 
 async function runMigrations() {
     const databaseUrl = process.env.DATABASE_URL;

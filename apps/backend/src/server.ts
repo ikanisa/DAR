@@ -9,8 +9,8 @@ import rateLimit from '@fastify/rate-limit';
 import { getConfig } from './config.js';
 import { rbac } from './rbac.js';
 import { closePool } from './db.js';
-import { logger } from './observability/logger.js';
-import { getMetrics, getMetricsContentType, httpRequestsTotal, httpRequestDuration } from './observability/metrics.js';
+import { logger, requestLogger } from './observability/logger.js';
+import { metricsMiddleware } from './observability/metrics.js';
 
 // Routes
 import { listingsRoutes } from './routes/listings.js';
@@ -23,6 +23,17 @@ import { toolsRoutes } from './routes/tools.js';
 import { healthRoutes } from './routes/health.js';
 import { flowsRoutes } from './routes/flows.js';
 import { webchatRoutes } from './routes/webchat.js';
+import { riskRoutes } from './routes/risk.js';
+import { discoveryRoutes } from './routes/discovery.js';
+import { evidenceRoutes } from './routes/evidence.js';
+import { etlRoutes } from './routes/etl.js';
+import { enrichRoutes } from './routes/enrich.js';
+import { scheduleDiscovery } from './jobs/discoveryJob.js';
+import { scheduleETL } from './jobs/etlJob.js';
+import { scheduleEnrichment } from './jobs/enrichJob.js';
+import { scheduleRetentionJobs } from './jobs/retention.js';
+import { reportRoutes } from './routes/reports.js';
+import { scheduleOpsJobs } from './jobs/opsJob.js';
 
 async function buildServer() {
     const config = getConfig();
@@ -53,36 +64,18 @@ async function buildServer() {
     await fastify.register(rbac);
 
     // Request logging and metrics
-    fastify.addHook('onRequest', async (request) => {
-        request.requestStartTime = Date.now();
+    fastify.addHook('onRequest', (request, reply, done) => {
+        // Cast to any to avoid strict type checks on the middleware signature if needed, 
+        // but it should match (req, rep, done)
+        metricsMiddleware(request, reply, done);
     });
 
-    fastify.addHook('onResponse', async (request, reply) => {
-        const duration = (Date.now() - (request.requestStartTime || Date.now())) / 1000;
-        const route = request.routeOptions?.url || request.url;
-        const method = request.method;
-        const status = reply.statusCode.toString();
-
-        httpRequestsTotal.labels(method, route, status).inc();
-        httpRequestDuration.labels(method, route, status).observe(duration);
-
-        logger.info({
-            method,
-            url: request.url,
-            status: reply.statusCode,
-            duration: `${duration.toFixed(3)}s`,
-            userId: request.user?.sub,
-        }, 'Request completed');
+    fastify.addHook('onRequest', (request, reply, done) => {
+        requestLogger(request, reply, done);
     });
 
     // Health routes (no /api prefix)
     await fastify.register(healthRoutes);
-
-    // Metrics endpoint
-    fastify.get('/metrics', async (_request, reply) => {
-        const metrics = await getMetrics();
-        return reply.type(getMetricsContentType()).send(metrics);
-    });
 
     // API routes
     await fastify.register(async (api) => {
@@ -95,6 +88,12 @@ async function buildServer() {
         await api.register(toolsRoutes);
         await api.register(flowsRoutes);
         await api.register(webchatRoutes);
+        await api.register(riskRoutes);
+        await api.register(discoveryRoutes);
+        await api.register(evidenceRoutes);
+        await api.register(etlRoutes, { prefix: '/etl' });
+        await api.register(enrichRoutes);
+        await api.register(reportRoutes);
     }, { prefix: '/api' });
 
     // Error handler
@@ -153,6 +152,21 @@ async function start() {
         });
 
         logger.info(`Server listening on http://0.0.0.0:${config.PORT}`);
+
+        // Schedule discovery job (runs daily at 6 AM Malta time)
+        scheduleDiscovery();
+
+        // Schedule ETL job (runs every 2 hours)
+        scheduleETL();
+
+        // Schedule enrichment job (runs every 4 hours)
+        scheduleEnrichment();
+
+        // Schedule retention jobs (runs daily at 3 AM)
+        scheduleRetentionJobs();
+
+        // Schedule ops jobs (weekly brief + anomaly detection)
+        scheduleOpsJobs();
     } catch (err) {
         logger.error({ err }, 'Failed to start server');
         process.exit(1);

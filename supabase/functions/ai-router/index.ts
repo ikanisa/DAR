@@ -7,9 +7,9 @@ const ALLOWED_ORIGINS = new Set([
 ]);
 
 const DEFAULT_MODELS = {
-  gemini: 'gemini-3-pro',
-  openai: 'gpt-5.2',
-  anthropic: 'claude-4.5-opus'
+  gemini: 'gemini-2.0-flash',  // Valid model with grounding/search support
+  openai: 'gpt-4o',
+  anthropic: 'claude-3-5-sonnet-20241022'
 } as const;
 
 const corsHeaders = (origin: string | null) => ({

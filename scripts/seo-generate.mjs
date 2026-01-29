@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const ROOT = process.cwd();
+const OUTPUT_DIR = process.env.SEO_OUTPUT_DIR ? path.resolve(ROOT, process.env.SEO_OUTPUT_DIR) : ROOT;
 const SITE_URL = 'https://dar.ikanisa.com';
 const LISTING_MIN_CHARS = 120;
 const REQUEST_MIN_CHARS = 80;
@@ -50,8 +51,8 @@ const loadEnv = async () => {
   const supabaseKeyMatch = indexHtml.match(/SUPABASE_ANON_KEY\s*=\s*'([^']+)'/);
 
   return {
-    supabaseUrl: process.env.SUPABASE_URL || env.SUPABASE_URL || supabaseUrlMatch?.[1],
-    supabaseKey: process.env.SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || supabaseKeyMatch?.[1]
+    supabaseUrl: process.env.SUPABASE_URL || env.SUPABASE_URL || env.VITE_SUPABASE_URL || supabaseUrlMatch?.[1],
+    supabaseKey: process.env.SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY || supabaseKeyMatch?.[1]
   };
 };
 
@@ -268,7 +269,7 @@ const generate = async () => {
       structuredData
     });
 
-    await writeFile(path.join(ROOT, 'listing', String(page.id), 'index.html'), html);
+    await writeFile(path.join(OUTPUT_DIR, 'listing', String(page.id), 'index.html'), html);
   };
 
   for (const page of listingPages) {
@@ -283,7 +284,7 @@ const generate = async () => {
     </div>
   `;
 
-  await writeFile(path.join(ROOT, 'listings', 'index.html'), template({
+  await writeFile(path.join(OUTPUT_DIR, 'listings', 'index.html'), template({
     title: 'Listings — Malta Marketplace',
     description: 'Browse published listings across Malta with daily updates.',
     canonical: `${SITE_URL}/listings`,
@@ -305,7 +306,7 @@ const generate = async () => {
     </div>
   `;
 
-  await writeFile(path.join(ROOT, 'vendors', 'index.html'), template({
+  await writeFile(path.join(OUTPUT_DIR, 'vendors', 'index.html'), template({
     title: 'Vendors — Verified Directory',
     description: 'Browse verified sources and marketplace partners powering Dar listings.',
     canonical: `${SITE_URL}/vendors`,
@@ -336,7 +337,7 @@ const generate = async () => {
       url: vendor.source.url
     };
 
-    await writeFile(path.join(ROOT, 'vendor', vendor.slug, 'index.html'), template({
+    await writeFile(path.join(OUTPUT_DIR, 'vendor', vendor.slug, 'index.html'), template({
       title: `${vendor.source.name} — ${vendor.source.category || 'Vendor'} in Malta | Marketplace`,
       description: `Verified source in ${vendor.source.category || 'Malta'}. Browse latest listings and updates.`,
       canonical: vendor.url,
@@ -363,7 +364,7 @@ const generate = async () => {
       </div>
     `;
 
-    await writeFile(path.join(ROOT, 'categories', slug, 'index.html'), template({
+    await writeFile(path.join(OUTPUT_DIR, 'categories', slug, 'index.html'), template({
       title: `${category.name} Listings | Marketplace`,
       description: `Browse ${category.name} listings across Malta.`,
       canonical: categoryUrl,
@@ -388,7 +389,7 @@ const generate = async () => {
       </div>
     `;
 
-    await writeFile(path.join(ROOT, 'locations', slug, 'index.html'), template({
+    await writeFile(path.join(OUTPUT_DIR, 'locations', slug, 'index.html'), template({
       title: `${location.name} Listings | Marketplace`,
       description: `Find listings in ${location.name}, Malta.`,
       canonical: locationUrl,
@@ -403,7 +404,7 @@ const generate = async () => {
     }));
   }
 
-  await writeFile(path.join(ROOT, 'requests', 'index.html'), template({
+  await writeFile(path.join(OUTPUT_DIR, 'requests', 'index.html'), template({
     title: 'Requests — Community Marketplace',
     description: 'Community requests will appear here once published.',
     canonical: `${SITE_URL}/requests`,
@@ -417,7 +418,7 @@ const generate = async () => {
     ]
   }));
 
-  await writeFile(path.join(ROOT, 'search', 'index.html'), template({
+  await writeFile(path.join(OUTPUT_DIR, 'search', 'index.html'), template({
     title: 'Search — Marketplace',
     description: 'Search listings, categories, and locations in Malta.',
     canonical: `${SITE_URL}/search`,
@@ -439,28 +440,28 @@ const generate = async () => {
     .map((page) => `<url><loc>${page.url}</loc></url>`);
 
   const listingSitemap = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"https://www.sitemaps.org/schemas/sitemap/0.9\">\n${listingSitemapEntries.join('\n')}\n</urlset>`;
-  await writeFile(path.join(ROOT, 'sitemap-listings.xml'), listingSitemap);
+  await writeFile(path.join(OUTPUT_DIR, 'sitemap-listings.xml'), listingSitemap);
   sitemapFiles.push('sitemap-listings.xml');
 
   const vendorEntries = vendorPages
     .filter((vendor) => vendor.listings.length > 0)
     .map((vendor) => `<url><loc>${vendor.url}</loc></url>`);
   const vendorSitemap = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"https://www.sitemaps.org/schemas/sitemap/0.9\">\n${vendorEntries.join('\n')}\n</urlset>`;
-  await writeFile(path.join(ROOT, 'sitemap-vendors.xml'), vendorSitemap);
+  await writeFile(path.join(OUTPUT_DIR, 'sitemap-vendors.xml'), vendorSitemap);
   sitemapFiles.push('sitemap-vendors.xml');
 
   const categoryEntries = Array.from(categoryMap.keys()).map((slug) => `<url><loc>${SITE_URL}/categories/${slug}</loc></url>`);
   const categorySitemap = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"https://www.sitemaps.org/schemas/sitemap/0.9\">\n${categoryEntries.join('\n')}\n</urlset>`;
-  await writeFile(path.join(ROOT, 'sitemap-categories.xml'), categorySitemap);
+  await writeFile(path.join(OUTPUT_DIR, 'sitemap-categories.xml'), categorySitemap);
   sitemapFiles.push('sitemap-categories.xml');
 
   const locationEntries = Array.from(locationMap.keys()).map((slug) => `<url><loc>${SITE_URL}/locations/${slug}</loc></url>`);
   const locationSitemap = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"https://www.sitemaps.org/schemas/sitemap/0.9\">\n${locationEntries.join('\n')}\n</urlset>`;
-  await writeFile(path.join(ROOT, 'sitemap-locations.xml'), locationSitemap);
+  await writeFile(path.join(OUTPUT_DIR, 'sitemap-locations.xml'), locationSitemap);
   sitemapFiles.push('sitemap-locations.xml');
 
   const requestSitemap = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<urlset xmlns=\"https://www.sitemaps.org/schemas/sitemap/0.9\"></urlset>`;
-  await writeFile(path.join(ROOT, 'sitemap-requests.xml'), requestSitemap);
+  await writeFile(path.join(OUTPUT_DIR, 'sitemap-requests.xml'), requestSitemap);
   sitemapFiles.push('sitemap-requests.xml');
 
   sitemapFiles.forEach((file) => {
@@ -468,10 +469,10 @@ const generate = async () => {
   });
 
   const sitemapIndexXml = `<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<sitemapindex xmlns=\"https://www.sitemaps.org/schemas/sitemap/0.9\">\n${sitemapIndex.join('\n')}\n</sitemapindex>`;
-  await writeFile(path.join(ROOT, 'sitemap.xml'), sitemapIndexXml);
+  await writeFile(path.join(OUTPUT_DIR, 'sitemap.xml'), sitemapIndexXml);
 
   const robots = `User-agent: *\nAllow: /\nDisallow: /chat\nDisallow: /notifications\nDisallow: /inbox\nDisallow: /me/\nDisallow: /draft/\nSitemap: ${SITE_URL}/sitemap.xml\n`;
-  await writeFile(path.join(ROOT, 'robots.txt'), robots);
+  await writeFile(path.join(OUTPUT_DIR, 'robots.txt'), robots);
 
   console.log('SEO pages generated:', listingPages.length);
 };

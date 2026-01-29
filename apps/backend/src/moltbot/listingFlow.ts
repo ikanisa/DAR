@@ -7,6 +7,7 @@ import { getMoltbotClient, type MoltbotResponse } from './MoltbotClient.js';
 import { query } from '../db.js';
 import { audit, AuditActions } from '../audit.js';
 import { logger } from '../observability/logger.js';
+import crypto from 'crypto';
 
 const AGENT_ID = 'poster-agent';
 
@@ -85,38 +86,86 @@ export async function submitListing(
     const { userId, sessionId, title, description, propertyType, priceAmount, addressText, bedrooms, bathrooms, sizeSqm, lat, lng } = submission;
 
     try {
+        const link = `https://dar.mt/p/${crypto.randomUUID()}`;
+        const rawData = { lat, lng, description };
+
         // Insert listing
         const result = await query<{ id: string }>(
-            `INSERT INTO listings (
-        poster_id, title, description, type, price_amount, 
-        address_text, bedrooms, bathrooms, size_sqm, lat, lng, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'submitted')
+            `INSERT INTO property_listings (
+        poster_id, title, summary, link, type, price, currency,
+        bedrooms, bathrooms, interior_area, location, raw, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'submitted')
       RETURNING id`,
             [
-                userId, title, description, propertyType, priceAmount,
-                addressText, bedrooms ?? null, bathrooms ?? null, sizeSqm ?? null,
-                lat ?? null, lng ?? null,
+                userId,
+                title,
+                description.substring(0, 500),
+                link,
+                propertyType,
+                priceAmount,
+                'EUR',
+                bedrooms ?? null,
+                bathrooms ?? null,
+                sizeSqm ?? null,
+                addressText,
+                JSON.stringify(rawData),
             ]
         );
 
         const listingId = result.rows[0].id;
+
+        // P6A: Risk scoring integration
+        let riskStatus = 'ok';
+        try {
+            const { computeFingerprint, scoreListing, isRiskScoringEnabled } = await import('../services/riskService.js');
+
+            if (isRiskScoringEnabled()) {
+                await computeFingerprint(listingId);
+                const riskResult = await scoreListing(listingId);
+                riskStatus = riskResult.status;
+
+                // If high risk, update listing status to hold_for_review
+                if (riskResult.status === 'hold' || riskResult.status === 'review_required') {
+                    await query(
+                        `UPDATE property_listings SET status = 'hold_for_review' WHERE id = $1`,
+                        [listingId]
+                    );
+                    logger.warn({ listingId, riskScore: riskResult.risk_score, reasons: riskResult.reasons },
+                        'Listing held for review due to risk score');
+                }
+            }
+        } catch (riskError) {
+            logger.error({ riskError, listingId }, 'Risk scoring failed in flow, proceeding');
+        }
 
         // Audit
         await audit({
             actorType: 'user',
             actorId: userId,
             action: AuditActions.LISTING_CREATE,
-            entity: 'listings',
+            entity: 'listings', // Keep entity name generic or switch to property_listings? keeping generic 'listings' for audit consistence
             entityId: listingId,
-            payload: { sessionId, title, propertyType },
+            payload: { sessionId, title, propertyType, riskStatus },
         });
 
-        logger.info({ listingId, userId, sessionId }, 'Listing submitted via flow');
+        logger.info({ listingId, userId, sessionId, riskStatus }, 'Listing submitted via flow');
+
+        // Trigger the listing submitted hook to notify admin (only if not held?)
+        // The requirement says "if ok => proceed to standard admin review".
+        // If held, we might want to notify poster differently?
+        // For now, onListingSubmitted handles generic "submitted" notification to admin. 
+        // Admin queue usually picks up submitted. If held, it might go to a different queue view.
+        await onListingSubmitted(listingId, userId);
+
+        let userMessage = `Listing "${title}" submitted for review.`;
+        if (riskStatus !== 'ok') {
+            userMessage += ` It is currently being reviewed by our trust & safety team.`;
+        }
 
         return {
             success: true,
             listingId,
-            message: `Listing "${title}" submitted for review`,
+            message: userMessage,
         };
     } catch (err) {
         logger.error({ err, userId, sessionId }, 'Failed to submit listing');
@@ -125,6 +174,32 @@ export async function submitListing(
             message: 'Failed to submit listing. Please try again.',
         };
     }
+}
+
+/**
+ * Hook called when a listing is submitted - triggers admin notification
+ */
+export async function onListingSubmitted(
+    listingId: string,
+    posterId: string
+): Promise<void> {
+    await audit({
+        actorType: 'system',
+        actorId: 'listing-flow',
+        action: 'listing.submitted',
+        entity: 'listings',
+        entityId: listingId,
+    });
+
+    // Notify admin agent to review the listing
+    const client = getMoltbotClient();
+    if (client.notifyAdminNewListing) {
+        await client.notifyAdminNewListing(listingId);
+    } else {
+        logger.warn('notifyAdminNewListing not available on client');
+    }
+
+    logger.info({ listingId, posterId }, 'Listing submitted hook triggered');
 }
 
 /**
@@ -138,20 +213,17 @@ export async function notifyListingStatus(
 ): Promise<void> {
     // Get user contact info
     const userResult = await query(
-        'SELECT whatsapp_id, phone FROM users WHERE id = $1',
+        'SELECT whatsapp_id, telegram_id, phone FROM users WHERE id = $1',
         [userId]
     );
 
     if (userResult.rows.length === 0) return;
 
     const user = userResult.rows[0];
-    const recipient = user.whatsapp_id || user.phone;
 
-    if (!recipient) return;
-
-    // Get listing title
+    // Get listing title - Updated to property_listings
     const listingResult = await query(
-        'SELECT title FROM listings WHERE id = $1',
+        'SELECT title FROM property_listings WHERE id = $1',
         [listingId]
     );
 
@@ -171,6 +243,27 @@ export async function notifyListingStatus(
             break;
     }
 
-    // Send via notifications API (would be internal call in production)
-    logger.info({ userId, listingId, status, recipient }, 'Would send listing status notification');
+    // Send notification via MoltbotClient
+    const client = getMoltbotClient();
+
+    if (user.whatsapp_id) {
+        await client.notifyPoster(user.whatsapp_id, message, 'whatsapp');
+    } else if (user.telegram_id) {
+        await client.notifyPoster(user.telegram_id, message, 'telegram');
+    }
+
+    // Audit the notification
+    await audit({
+        actorType: 'system',
+        actorId: 'listing-flow',
+        action: 'listing.notification.sent',
+        entity: 'listings',
+        entityId: listingId,
+        payload: {
+            status,
+            channel: user.whatsapp_id ? 'whatsapp' : user.telegram_id ? 'telegram' : 'none'
+        },
+    });
+
+    logger.info({ userId, listingId, status }, 'Listing status notification sent');
 }

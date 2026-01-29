@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { ClayButton } from '../components/ui/ClayButton';
+import { ClayButton } from '@dar/ui';
 import { NotificationCard } from '../components/notifications/NotificationCard';
 import { FeedCard } from '../components/feed/FeedCard';
 import {
@@ -15,7 +15,7 @@ import {
     markAllNotificationsRead,
     fetchExternalFeedItems
 } from '../lib/moltbotActions';
-import { WebNotification, ExternalFeedItem } from '../lib/types';
+import { WebNotification, ExternalFeedItem } from '@dar/core';
 import { useSession } from '../lib/SessionContext';
 import { Bell, Check, Loader2, ExternalLink } from 'lucide-react';
 

@@ -23,7 +23,7 @@ Validate:
 ### A1) Services Running
 
 ```bash
-docker compose -f infra/docker-compose.yml ps
+docker compose -f docker-compose.yml ps
 ```
 
 **Expected**:

@@ -1,0 +1,387 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "realestate-admin-output-contract.v1",
+    "title": "Real Estate Admin Agent Output Contract",
+    "description": "JSON Schema for validating Moltbot admin agent outputs",
+    "type": "object",
+    "required": [
+        "thought",
+        "action",
+        "params"
+    ],
+    "additionalProperties": false,
+    "properties": {
+        "thought": {
+            "type": "string",
+            "description": "Agent reasoning explaining the decision",
+            "minLength": 10,
+            "maxLength": 500
+        },
+        "action": {
+            "type": "string",
+            "description": "The admin action to execute",
+            "enum": [
+                "ask_user",
+                "approve_listing",
+                "reject_listing",
+                "request_changes",
+                "flag_moderation",
+                "view_queue",
+                "view_listing_details",
+                "escalate",
+                "unblock_user",
+                "suspend_user",
+                "update_listing_status",
+                "risk_override"
+            ]
+        },
+        "params": {
+            "type": "object",
+            "description": "Parameters for the action",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "description": "User-facing message",
+                    "maxLength": 2000
+                },
+                "listing_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID of the listing being actioned"
+                },
+                "user_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "UUID of the user for user actions"
+                },
+                "reason": {
+                    "type": "string",
+                    "description": "Reason for rejection, flag, or escalation",
+                    "maxLength": 500
+                },
+                "notes": {
+                    "type": "string",
+                    "description": "Internal admin notes (not shown to poster)",
+                    "maxLength": 1000
+                },
+                "decision": {
+                    "type": "string",
+                    "description": "Risk override decision",
+                    "enum": [
+                        "allow",
+                        "hold",
+                        "reject"
+                    ]
+                },
+                "changes_requested": {
+                    "type": "array",
+                    "description": "List of specific changes needed for request_changes",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "field",
+                            "issue"
+                        ],
+                        "properties": {
+                            "field": {
+                                "type": "string"
+                            },
+                            "issue": {
+                                "type": "string"
+                            },
+                            "suggestion": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                },
+                "moderation_category": {
+                    "type": "string",
+                    "description": "Category for flag_moderation",
+                    "enum": [
+                        "spam",
+                        "inappropriate",
+                        "misleading",
+                        "duplicate",
+                        "low_quality",
+                        "suspicious",
+                        "other"
+                    ]
+                },
+                "severity": {
+                    "type": "string",
+                    "description": "Severity level for escalation",
+                    "enum": [
+                        "low",
+                        "medium",
+                        "high",
+                        "critical"
+                    ]
+                },
+                "queue_filter": {
+                    "type": "object",
+                    "description": "Filters for view_queue",
+                    "properties": {
+                        "status": {
+                            "type": "string",
+                            "enum": [
+                                "pending",
+                                "moderation_hold",
+                                "changes_requested",
+                                "all"
+                            ]
+                        },
+                        "priority": {
+                            "type": "string",
+                            "enum": [
+                                "newest",
+                                "oldest",
+                                "high_value"
+                            ]
+                        },
+                        "limit": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 50,
+                            "default": 10
+                        }
+                    }
+                },
+                "queue_items": {
+                    "type": "array",
+                    "description": "Queue items to display for view_queue response",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "listing_id",
+                            "title",
+                            "status"
+                        ],
+                        "properties": {
+                            "listing_id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "title": {
+                                "type": "string"
+                            },
+                            "status": {
+                                "type": "string"
+                            },
+                            "submitted_at": {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            "poster_id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "flags": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                },
+                "new_status": {
+                    "type": "string",
+                    "description": "New status for update_listing_status",
+                    "enum": [
+                        "draft",
+                        "pending",
+                        "approved",
+                        "rejected",
+                        "moderation_hold",
+                        "archived"
+                    ]
+                },
+                "suspension_duration": {
+                    "type": "string",
+                    "description": "Duration for suspend_user",
+                    "enum": [
+                        "1d",
+                        "7d",
+                        "30d",
+                        "permanent"
+                    ]
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "ask_user"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "message"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "approve_listing"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "listing_id"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "reject_listing"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "listing_id",
+                            "reason"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "request_changes"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "listing_id",
+                            "changes_requested"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "flag_moderation"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "listing_id",
+                            "moderation_category",
+                            "reason"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "escalate"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "listing_id",
+                            "severity",
+                            "reason"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "suspend_user"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "user_id",
+                            "reason",
+                            "suspension_duration"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "update_listing_status"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "listing_id",
+                            "new_status"
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "if": {
+                "properties": {
+                    "action": {
+                        "const": "risk_override"
+                    }
+                }
+            },
+            "then": {
+                "properties": {
+                    "params": {
+                        "required": [
+                            "listing_id",
+                            "decision"
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}

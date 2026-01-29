@@ -37,7 +37,7 @@
     "agents": {
         "list": [
             {
-                "id": "poster-agent",
+                "id": "poster",
                 "name": "Dar Poster Assistant",
                 "prompt": "./agents/poster/AGENTS.md",
                 "sandbox": true,
@@ -47,7 +47,7 @@
                 ]
             },
             {
-                "id": "seeker-agent",
+                "id": "seeker",
                 "name": "Dar Property Search",
                 "prompt": "./agents/seeker/AGENTS.md",
                 "sandbox": true,
@@ -58,7 +58,7 @@
                 ]
             },
             {
-                "id": "admin-agent",
+                "id": "admin",
                 "name": "Dar Admin",
                 "prompt": "./agents/admin/AGENTS.md",
                 "sandbox": false,
@@ -83,17 +83,17 @@
         {
             "channel": "whatsapp",
             "type": "dm",
-            "agent": "poster-agent"
+            "agent": "poster"
         },
         {
             "channel": "telegram",
             "type": "dm",
-            "agent": "seeker-agent"
+            "agent": "seeker"
         },
         {
             "channel": "webchat",
             "type": "any",
-            "agent": "admin-agent"
+            "agent": "admin"
         }
     ],
     "tools": {

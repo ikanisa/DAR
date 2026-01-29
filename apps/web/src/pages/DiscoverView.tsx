@@ -9,9 +9,9 @@ import { SearchBar } from '../components/search/SearchBar';
 import { ListingCard } from '../components/listings/ListingCard';
 import { VendorCard } from '../components/listings/VendorCard';
 import { fetchPublishedListings, fetchVerifiedVendors } from '../lib/moltbotActions';
-import { ProductListing, Vendor } from '../lib/types';
+import { ProductListing, Vendor } from '@dar/core';
 import { Loader2, Sparkles, TrendingUp } from 'lucide-react';
-import { ClayButton } from '../components/ui/ClayButton';
+import { ClayButton } from '@dar/ui';
 
 // Sample categories and locations
 const CATEGORIES = ['Electronics', 'Home', 'Fashion', 'Services', 'Auto', 'Other'];

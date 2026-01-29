@@ -6,8 +6,8 @@
  */
 
 import { MapPin, UserCheck, Heart } from 'lucide-react';
-import { ClayCard } from '../ui/ClayCard';
-import { ProductListing } from '../../lib/types';
+import { ClayCard } from '@dar/ui';
+import { ProductListing } from '@dar/core';
 
 interface ListingCardProps {
     listing: ProductListing;

@@ -5,8 +5,8 @@
  */
 
 import { UserCheck, Star, MessageCircle, ExternalLink } from 'lucide-react';
-import { ClayCard } from '../ui/ClayCard';
-import { Vendor } from '../../lib/types';
+import { ClayCard } from '@dar/ui';
+import { Vendor } from '@dar/core';
 
 interface VendorCardProps {
     vendor: Vendor;

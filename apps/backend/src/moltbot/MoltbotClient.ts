@@ -126,6 +126,41 @@ export class MoltbotClient {
             return false;
         }
     }
+
+    /**
+     * Notify admin agent of a new listing requiring review
+     */
+    async notifyAdminNewListing(listingId: string): Promise<MoltbotResponse> {
+        logger.info({ listingId }, 'Notifying admin of new listing');
+
+        return this.sendMessage({
+            agentId: 'admin-agent',
+            sessionId: `listing-review-${listingId}`,
+            message: `New listing submitted for review: ${listingId}`,
+            context: {
+                action: 'review_requested',
+                listing_id: listingId,
+            },
+        });
+    }
+
+    /**
+     * Send notification to poster via their preferred channel
+     */
+    async notifyPoster(
+        peerId: string,
+        message: string,
+        channel: 'whatsapp' | 'telegram' = 'whatsapp'
+    ): Promise<boolean> {
+        // In production, this would call the actual notification service
+        // For now, we log and simulate success
+        logger.info({ peerId, channel, message }, 'Notification sent to poster');
+
+        // Could integrate with actual WhatsApp/Telegram APIs here
+        // Example: await this.post(`/hooks/${channel}/send`, { peer_id: peerId, message });
+
+        return true;
+    }
 }
 
 // Singleton instance

@@ -5,7 +5,7 @@
  * These appear after assistant messages with ask_user actions.
  */
 
-import { MoltbotOutput, AskUserOutput } from '../../lib/moltbotSchema';
+import { MoltbotOutput, AskUserOutput } from '@dar/core';
 
 interface QuickActionsProps {
     output?: MoltbotOutput;
@@ -62,7 +62,7 @@ export function QuickActions({ output, onSelect, disabled }: QuickActionsProps) 
  */
 export function TypingIndicator() {
     return (
-        <div className="flex justify-start">
+        <div className="flex justify-start" role="status" aria-label="Dar is typing">
             <div className="bg-clay-card border border-white/10 rounded-2xl px-4 py-3 shadow-clay">
                 <div className="flex items-center gap-1">
                     <span className="w-2 h-2 bg-clay-action rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />

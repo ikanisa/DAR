@@ -15,6 +15,10 @@ const envSchema = z.object({
     // Service Token (for Moltbot tool calls)
     SERVICE_TOKEN: z.string().min(16, 'SERVICE_TOKEN must be at least 16 characters'),
 
+    // Supabase (for Edge Function calls)
+    SUPABASE_URL: z.string().url().optional(),
+    SUPABASE_SERVICE_KEY: z.string().optional(),
+
     // Moltbot Gateway (optional - server-side only)
     MOLTBOT_GATEWAY_URL: z.string().url().optional(),
     MOLTBOT_GATEWAY_TOKEN: z.string().optional(),

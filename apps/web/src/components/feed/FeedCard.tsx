@@ -6,8 +6,8 @@
  */
 
 import { ExternalLink, Clock } from 'lucide-react';
-import { ClayCard } from '../ui/ClayCard';
-import { ExternalFeedItem } from '../../lib/types';
+import { ClayCard } from '@dar/ui';
+import { ExternalFeedItem } from '@dar/core';
 
 interface FeedCardProps {
     item: ExternalFeedItem;

@@ -6,11 +6,13 @@
  */
 
 import { useState, useEffect } from 'react';
-import { ClayCard } from '../components/ui/ClayCard';
-import { BentoGrid, BentoItem } from '../components/ui/BentoGrid';
-import { StatusChip } from '../components/ui/StatusChip';
+import { ClayCard } from '@dar/ui';
+import { BentoGrid, BentoItem } from '@dar/ui';
+import { StatusChip } from '@dar/ui';
+import { SkeletonList } from '@dar/ui';
+import { EmptyState } from '@dar/ui';
 import { supabase } from '../lib/supabase';
-import { Loader2, Store, MapPin } from 'lucide-react';
+import { Store, MapPin } from 'lucide-react';
 
 interface Vendor {
     id: string;
@@ -59,11 +61,12 @@ export function VendorsTab() {
         }
     };
 
-    // Loading state
+    // Loading state with skeleton
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-20">
-                <Loader2 className="w-8 h-8 animate-spin text-clay-action" aria-label="Loading vendors" />
+            <div className="animate-fade-in">
+                <div className="h-8 w-48 bg-white/5 rounded-lg animate-pulse mb-6" />
+                <SkeletonList count={4} columns={2} />
             </div>
         );
     }
@@ -71,13 +74,11 @@ export function VendorsTab() {
     // Empty state
     if (vendors.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-center">
-                <Store className="w-16 h-16 text-text-muted mb-4" aria-hidden="true" />
-                <h2 className="text-xl font-bold mb-2">No Verified Vendors Yet</h2>
-                <p className="text-text-muted max-w-sm">
-                    Verified vendors will appear here. Use the chat to become a vendor!
-                </p>
-            </div>
+            <EmptyState
+                icon={Store}
+                title="No Verified Vendors Yet"
+                description="Verified vendors will appear here. Use the chat to become a vendor!"
+            />
         );
     }
 

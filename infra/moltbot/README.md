@@ -46,9 +46,9 @@ pnpm moltbot gateway status
 
 | Channel   | Agent          | Purpose                    |
 |-----------|----------------|----------------------------|
-| WhatsApp  | poster-agent   | Listing creation workflow  |
-| Telegram  | seeker-agent   | Property search & viewings |
-| WebChat   | admin-agent    | Review queue & moderation  |
+| WhatsApp  | poster         | Listing creation workflow  |
+| Telegram  | seeker         | Property search & viewings |
+| WebChat   | admin          | Review queue & moderation  |
 
 ## Security Features
 
@@ -123,7 +123,7 @@ pnpm moltbot config validate ./moltbot.json
 ### Agent not responding
 ```bash
 # Check agent logs
-pnpm moltbot logs --agent poster-agent
+pnpm moltbot logs --agent poster
 
 # Verify bindings
 pnpm moltbot bindings list

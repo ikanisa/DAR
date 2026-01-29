@@ -16,8 +16,8 @@ import {
     ShowListingsOutput,
     InquireListingOutput,
     createErrorOutput as _createErrorOutput,
-} from './moltbotSchema';
-import { ProductListing } from './types';
+    ProductListing
+} from '@dar/core';
 
 // =============================================================================
 // ACTION HANDLERS

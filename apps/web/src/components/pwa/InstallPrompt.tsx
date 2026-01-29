@@ -6,8 +6,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { ClayCard } from '../ui/ClayCard';
-import { ClayButton } from '../ui/ClayButton';
+import { ClayCard } from '@dar/ui';
+import { ClayButton } from '@dar/ui';
 import { Download, X, Smartphone } from 'lucide-react';
 
 interface BeforeInstallPromptEvent extends Event {

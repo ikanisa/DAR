@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { ClayCard } from '../components/ui/ClayCard';
+import { ClayCard } from '@dar/ui';
 import { useSession } from '../lib/SessionContext';
 import {
     ArrowLeft, Bell, Moon, Globe, Shield, HelpCircle,

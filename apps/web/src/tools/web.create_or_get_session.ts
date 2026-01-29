@@ -1,51 +1,35 @@
 /**
  * web.create_or_get_session
  * 
- * Creates a persistent anonymous session or retrieves the existing one.
- * Stores in localStorage and syncs to Supabase 'web_sessions'.
+ * Creates a persistent anonymous session or retrieves the existing one using Supabase Auth.
+ * This ensures we have a valid JWT for backend communication.
  */
 
 import { supabase } from '../lib/supabase';
-// Using native crypto.randomUUID() or fallback
-
-function generateUUID() {
-    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-        return crypto.randomUUID();
-    }
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-        return v.toString(16);
-    });
-}
 
 export async function createOrGetSession(): Promise<string> {
-    const STORAGE_KEY = 'dar_anon_session_id';
-    let sessionId = localStorage.getItem(STORAGE_KEY);
+    const { data, error } = await supabase.auth.getSession();
 
-    if (!sessionId) {
-        sessionId = generateUUID();
-        localStorage.setItem(STORAGE_KEY, sessionId);
-
-        // Sync to DB (Best effort, ignore error if offline/no-permission yet)
-        try {
-            await supabase.from('web_sessions').insert({
-                anon_user_id: sessionId,
-                user_agent: navigator.userAgent,
-                language: navigator.language
-            });
-        } catch (e) {
-            console.warn('Failed to sync session to DB', e);
-        }
-    } else {
-        // Update last seen
-        try {
-            await supabase.from('web_sessions').update({
-                last_seen_at: new Date().toISOString()
-            }).eq('anon_user_id', sessionId);
-        } catch (e) {
-            // ignore
-        }
+    if (error) {
+        console.error('Failed to get session:', error);
+        throw error;
     }
 
-    return sessionId;
+    if (data.session) {
+        return data.session.user.id;
+    }
+
+    // No session, sign in anonymously
+    const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+
+    if (authError) {
+        console.error('Failed to sign in anonymously:', authError);
+        throw authError;
+    }
+
+    if (!authData.user) {
+        throw new Error('No user returned from anonymous sign in');
+    }
+
+    return authData.user.id;
 }

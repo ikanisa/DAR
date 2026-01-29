@@ -9,6 +9,7 @@ import { query, transaction } from '../db.js';
 import { requireAuth, requireRole } from '../rbac.js';
 import { audit, AuditActions } from '../audit.js';
 import { logger } from '../observability/logger.js';
+import crypto from 'crypto';
 
 // Validation schemas
 const createListingSchema = z.object({
@@ -50,16 +51,20 @@ export const listingsRoutes: FastifyPluginAsync = async (fastify) => {
         const userId = request.user!.sub;
         const data = body.data;
 
+        const link = `https://dar.mt/p/${crypto.randomUUID()}`; // Generate unique link
+        const rawData = { lat: data.lat, lng: data.lng, description: data.description };
+
         const result = await query<{ id: string }>(
-            `INSERT INTO listings (
-        poster_id, title, description, type, price_amount, price_currency,
-        bedrooms, bathrooms, size_sqm, address_text, lat, lng, status
+            `INSERT INTO property_listings (
+        poster_id, title, summary, link, type, price, currency,
+        bedrooms, bathrooms, interior_area, location, raw, status
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'submitted')
       RETURNING id`,
             [
                 userId,
                 data.title,
-                data.description,
+                data.description?.substring(0, 500), // Summary limited length
+                link,
                 data.type,
                 data.price_amount,
                 data.price_currency,
@@ -67,12 +72,36 @@ export const listingsRoutes: FastifyPluginAsync = async (fastify) => {
                 data.bathrooms ?? null,
                 data.size_sqm ?? null,
                 data.address_text ?? null,
-                data.lat ?? null,
-                data.lng ?? null,
+                JSON.stringify(rawData),
             ]
         );
 
         const listingId = result.rows[0].id;
+
+        // P6A: Risk scoring integration
+        let riskStatus = 'ok';
+        try {
+            const { computeFingerprint, scoreListing, isRiskScoringEnabled } = await import('../services/riskService.js');
+
+            if (isRiskScoringEnabled()) {
+                await computeFingerprint(listingId);
+                const riskResult = await scoreListing(listingId);
+                riskStatus = riskResult.status;
+
+                // If high risk, update listing status to hold_for_review
+                if (riskResult.status === 'hold' || riskResult.status === 'review_required') {
+                    await query(
+                        `UPDATE property_listings SET status = 'hold_for_review' WHERE id = $1`,
+                        [listingId]
+                    );
+                    logger.warn({ listingId, riskScore: riskResult.risk_score, reasons: riskResult.reasons },
+                        'Listing held for review due to risk score');
+                }
+            }
+        } catch (riskError) {
+            // Risk scoring failures should not block listing creation
+            logger.error({ riskError, listingId }, 'Risk scoring failed, proceeding with submission');
+        }
 
         await audit({
             actorType: 'user',
@@ -80,15 +109,18 @@ export const listingsRoutes: FastifyPluginAsync = async (fastify) => {
             action: AuditActions.LISTING_SUBMIT,
             entity: 'listings',
             entityId: listingId,
-            payload: { title: data.title, type: data.type, price: data.price_amount },
+            payload: { title: data.title, type: data.type, price: data.price_amount, riskStatus },
         });
 
-        logger.info({ listingId, userId }, 'Listing created');
+        logger.info({ listingId, userId, riskStatus }, 'Listing created');
 
         return reply.status(201).send({
             id: listingId,
-            status: 'submitted',
-            message: 'Listing submitted for review',
+            status: riskStatus === 'ok' ? 'submitted' : 'hold_for_review',
+            message: riskStatus === 'ok'
+                ? 'Listing submitted for review'
+                : 'Listing held for additional review',
+            riskStatus,
         });
     });
 
@@ -104,12 +136,12 @@ export const listingsRoutes: FastifyPluginAsync = async (fastify) => {
         }
 
         const result = await query(
-            `SELECT l.*, 
-              u.name as poster_name,
-              (SELECT json_agg(m.*) FROM listing_media m WHERE m.listing_id = l.id) as media
-       FROM listings l
-       JOIN users u ON u.id = l.poster_id
-       WHERE l.id = $1`,
+            `SELECT pl.*, 
+              u.email as poster_email,
+              (SELECT json_agg(pm.*) FROM property_media pm WHERE pm.property_id = pl.id) as media
+       FROM property_listings pl
+       LEFT JOIN auth.users u ON u.id = pl.poster_id
+       WHERE pl.id = $1`,
             [params.data.id]
         );
 
@@ -121,14 +153,12 @@ export const listingsRoutes: FastifyPluginAsync = async (fastify) => {
 
         // Check visibility: published is public, others require auth
         if (listing.status !== 'published') {
-            // Try to authenticate
             try {
                 await request.jwtVerify();
             } catch {
                 // Not authenticated
             }
 
-            // If not authenticated or not the owner/admin, hide non-published listings
             if (!request.user) {
                 return reply.status(404).send({ error: 'Listing not found' });
             }
@@ -154,11 +184,11 @@ export const listingsRoutes: FastifyPluginAsync = async (fastify) => {
         const userId = request.user!.sub;
 
         const result = await query(
-            `SELECT l.*,
-              (SELECT COUNT(*) FROM listing_media m WHERE m.listing_id = l.id) as media_count
-       FROM listings l
-       WHERE l.poster_id = $1
-       ORDER BY l.created_at DESC`,
+            `SELECT pl.*,
+              (SELECT COUNT(*) FROM property_media pm WHERE pm.property_id = pl.id) as media_count
+       FROM property_listings pl
+       WHERE pl.poster_id = $1
+       ORDER BY pl.created_at DESC`,
             [userId]
         );
 

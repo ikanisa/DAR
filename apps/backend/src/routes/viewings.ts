@@ -229,4 +229,247 @@ export const viewingsRoutes: FastifyPluginAsync = async (fastify) => {
             new_status: newStatus,
         });
     });
+
+    // =========================================================================
+    // P6B: Enhanced Viewing Scheduling Endpoints
+    // =========================================================================
+
+    /**
+     * POST /api/viewings/request
+     * Create a viewing request with multi-option scheduling (P6B)
+     */
+    fastify.post('/viewings/request', {
+        preHandler: requireAuth,
+    }, async (request, reply) => {
+        const schema = z.object({
+            property_id: z.string().uuid(),
+            notes: z.string().max(500).optional(),
+        });
+
+        const body = schema.safeParse(request.body);
+        if (!body.success) {
+            return reply.status(400).send({ error: 'Validation failed', details: body.error.issues });
+        }
+
+        const { createViewingRequest, isViewingsEnabled } = await import('../services/viewingService.js');
+
+        if (!isViewingsEnabled()) {
+            return reply.status(503).send({ error: 'Viewing scheduling is temporarily disabled' });
+        }
+
+        try {
+            const result = await createViewingRequest(
+                body.data.property_id,
+                request.user!.sub,
+                null,
+                body.data.notes
+            );
+            return reply.status(201).send(result);
+        } catch (error) {
+            logger.error({ error }, 'Failed to create viewing request');
+            return reply.status(500).send({ error: 'Failed to create viewing request' });
+        }
+    });
+
+    /**
+     * POST /api/viewings/:id/offer-times
+     * Offer time options for a viewing
+     */
+    fastify.post<{ Params: { id: string } }>('/viewings/:id/offer-times', {
+        preHandler: requireAuth,
+    }, async (request, reply) => {
+        const viewingRequestId = request.params.id;
+
+        const schema = z.object({
+            time_options: z.array(z.object({
+                start_at: z.string().datetime(),
+                end_at: z.string().datetime(),
+                timezone: z.string().optional(),
+            })).min(1).max(5),
+        });
+
+        const body = schema.safeParse(request.body);
+        if (!body.success) {
+            return reply.status(400).send({ error: 'Validation failed', details: body.error.issues });
+        }
+
+        const { offerTimeOptions } = await import('../services/viewingService.js');
+        const role = request.user!.role;
+        const source = ['admin', 'moderator'].includes(role) ? 'admin' :
+            role === 'poster' ? 'poster' : 'seeker';
+
+        try {
+            const result = await offerTimeOptions(
+                viewingRequestId,
+                body.data.time_options,
+                source as 'seeker' | 'poster' | 'admin'
+            );
+            return reply.send(result);
+        } catch (error) {
+            logger.error({ error, viewingRequestId }, 'Failed to offer time options');
+            return reply.status(500).send({ error: 'Failed to offer time options' });
+        }
+    });
+
+    /**
+     * POST /api/viewings/:id/select-time
+     * Select a time option
+     */
+    fastify.post<{ Params: { id: string } }>('/viewings/:id/select-time', {
+        preHandler: requireAuth,
+    }, async (request, reply) => {
+        const viewingRequestId = request.params.id;
+
+        const schema = z.object({
+            time_option_id: z.string().uuid(),
+        });
+
+        const body = schema.safeParse(request.body);
+        if (!body.success) {
+            return reply.status(400).send({ error: 'Validation failed', details: body.error.issues });
+        }
+
+        const { selectTimeOption } = await import('../services/viewingService.js');
+        const role = request.user!.role;
+        const actor = role === 'poster' ? 'poster' : 'seeker';
+
+        try {
+            const result = await selectTimeOption(
+                viewingRequestId,
+                body.data.time_option_id,
+                actor as 'seeker' | 'poster'
+            );
+            return reply.send(result);
+        } catch (error) {
+            logger.error({ error, viewingRequestId }, 'Failed to select time option');
+            return reply.status(500).send({ error: 'Failed to select time option' });
+        }
+    });
+
+    /**
+     * POST /api/viewings/:id/confirm
+     * Confirm a viewing
+     */
+    fastify.post<{ Params: { id: string } }>('/viewings/:id/confirm', {
+        preHandler: requireAuth,
+    }, async (request, reply) => {
+        const viewingRequestId = request.params.id;
+        const { confirmViewing } = await import('../services/viewingService.js');
+        const role = request.user!.role;
+        const actor = ['admin', 'moderator'].includes(role) ? 'admin' :
+            role === 'poster' ? 'poster' : 'seeker';
+
+        try {
+            const result = await confirmViewing(viewingRequestId, actor as 'seeker' | 'poster' | 'admin');
+            return reply.send(result);
+        } catch (error) {
+            logger.error({ error, viewingRequestId }, 'Failed to confirm viewing');
+            return reply.status(500).send({ error: 'Failed to confirm viewing' });
+        }
+    });
+
+    /**
+     * POST /api/viewings/:id/reschedule
+     * Reschedule a viewing with new time options
+     */
+    fastify.post<{ Params: { id: string } }>('/viewings/:id/reschedule', {
+        preHandler: requireAuth,
+    }, async (request, reply) => {
+        const viewingRequestId = request.params.id;
+
+        const schema = z.object({
+            new_time_options: z.array(z.object({
+                start_at: z.string().datetime(),
+                end_at: z.string().datetime(),
+                timezone: z.string().optional(),
+            })).min(1).max(5),
+        });
+
+        const body = schema.safeParse(request.body);
+        if (!body.success) {
+            return reply.status(400).send({ error: 'Validation failed', details: body.error.issues });
+        }
+
+        const { rescheduleViewing } = await import('../services/viewingService.js');
+        const role = request.user!.role;
+        const by = ['admin', 'moderator'].includes(role) ? 'admin' :
+            role === 'poster' ? 'poster' : 'seeker';
+
+        try {
+            const result = await rescheduleViewing(
+                viewingRequestId,
+                body.data.new_time_options,
+                by as 'seeker' | 'poster' | 'admin'
+            );
+            return reply.send(result);
+        } catch (error) {
+            logger.error({ error, viewingRequestId }, 'Failed to reschedule viewing');
+            return reply.status(500).send({ error: 'Failed to reschedule viewing' });
+        }
+    });
+
+    /**
+     * POST /api/viewings/:id/cancel
+     * Cancel a viewing
+     */
+    fastify.post<{ Params: { id: string } }>('/viewings/:id/cancel', {
+        preHandler: requireAuth,
+    }, async (request, reply) => {
+        const viewingRequestId = request.params.id;
+
+        const schema = z.object({
+            reason: z.string().max(500).optional(),
+        });
+
+        const body = schema.safeParse(request.body);
+
+        const { cancelViewing } = await import('../services/viewingService.js');
+        const role = request.user!.role;
+        const by = ['admin', 'moderator'].includes(role) ? 'admin' :
+            role === 'poster' ? 'poster' : 'seeker';
+
+        try {
+            const result = await cancelViewing(
+                viewingRequestId,
+                by as 'seeker' | 'poster' | 'admin',
+                body.success ? body.data.reason : undefined
+            );
+            return reply.send(result);
+        } catch (error) {
+            logger.error({ error, viewingRequestId }, 'Failed to cancel viewing');
+            return reply.status(500).send({ error: 'Failed to cancel viewing' });
+        }
+    });
+
+    /**
+     * GET /api/viewings/:id/details
+     * Get viewing request with time options and events
+     */
+    fastify.get<{ Params: { id: string } }>('/viewings/:id/details', {
+        preHandler: requireAuth,
+    }, async (request, reply) => {
+        const viewingRequestId = request.params.id;
+        const { getViewingRequest, getTimeOptions, getViewingEvents } = await import('../services/viewingService.js');
+
+        try {
+            const [viewing, timeOptions, events] = await Promise.all([
+                getViewingRequest(viewingRequestId),
+                getTimeOptions(viewingRequestId),
+                getViewingEvents(viewingRequestId),
+            ]);
+
+            if (!viewing) {
+                return reply.status(404).send({ error: 'Viewing request not found' });
+            }
+
+            return reply.send({
+                viewing,
+                time_options: timeOptions,
+                events,
+            });
+        } catch (error) {
+            logger.error({ error, viewingRequestId }, 'Failed to get viewing details');
+            return reply.status(500).send({ error: 'Failed to get viewing details' });
+        }
+    });
 };

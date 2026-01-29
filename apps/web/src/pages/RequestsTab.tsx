@@ -6,12 +6,12 @@
  */
 
 import { useState, useEffect } from 'react';
-import { ClayCard } from '../components/ui/ClayCard';
-import { ClayButton } from '../components/ui/ClayButton';
-import { ClayPill } from '../components/ui/ClayPill';
-import { BentoGrid, BentoItem } from '../components/ui/BentoGrid';
-import { GlassBottomSheet } from '../components/ui/GlassBottomSheet';
-import { StatusChip } from '../components/ui/StatusChip';
+import { ClayCard } from '@dar/ui';
+import { ClayButton } from '@dar/ui';
+import { ClayPill } from '@dar/ui';
+import { BentoGrid, BentoItem } from '@dar/ui';
+import { GlassBottomSheet } from '@dar/ui';
+import { StatusChip } from '@dar/ui';
 import { useSession } from '../lib/SessionContext';
 import { fetchMarketPosts } from '../lib/moltbotActions';
 import { runMatchingPipeline, fetchMatchSuggestions, RankedMatch } from '../lib/matchingService';

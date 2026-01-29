@@ -6,9 +6,9 @@
  */
 
 import { useState, useEffect } from 'react';
-import { ClayCard } from '../components/ui/ClayCard';
-import { ClayPill } from '../components/ui/ClayPill';
-import { BentoGrid, BentoItem } from '../components/ui/BentoGrid';
+import { ClayCard } from '@dar/ui';
+import { ClayPill } from '@dar/ui';
+import { BentoGrid, BentoItem } from '@dar/ui';
 import { isFeatureEnabled } from '../lib/featureFlags';
 import {
     fetchAllFeedItems,

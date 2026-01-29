@@ -164,18 +164,49 @@ export async function executeSearch(
     // Sort by match score
     results.sort((a, b) => b.matchScore - a.matchScore);
 
+    // Create match rows for top 3 results
+    const top3 = results.slice(0, 3);
+    for (const listing of top3) {
+        await createMatch(userId, listing.id, listing.matchScore, listing.matchReasons);
+    }
+
     // Audit search
     await audit({
         actorType: 'user',
         actorId: userId,
         action: 'search.execute',
         entity: 'listings',
-        payload: { preferences, resultCount: results.length },
+        payload: { preferences, resultCount: results.length, matchesCreated: top3.length },
     });
 
-    logger.info({ userId, resultCount: results.length, preferences }, 'Search executed');
+    logger.info({ userId, resultCount: results.length, matchesCreated: top3.length, preferences }, 'Search executed');
 
     return results;
+}
+
+/**
+ * Create a match row to track seeker interest in a listing
+ */
+async function createMatch(
+    seekerId: string,
+    listingId: string,
+    score: number,
+    reasons: string[]
+): Promise<void> {
+    try {
+        await query(
+            `INSERT INTO matches (seeker_id, listing_id, match_score, match_reasons)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (seeker_id, listing_id) DO UPDATE SET 
+               match_score = $3, match_reasons = $4, updated_at = NOW()`,
+            [seekerId, listingId, score, JSON.stringify(reasons)]
+        );
+
+        logger.debug({ seekerId, listingId, score }, 'Match created/updated');
+    } catch (err) {
+        // Log but don't fail the search if match creation fails
+        logger.warn({ err, seekerId, listingId }, 'Failed to create match row');
+    }
 }
 
 /**
