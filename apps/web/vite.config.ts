@@ -9,10 +9,8 @@ export default defineConfig(({ mode }) => {
     // though typically you want consistency.
     if (mode === 'production') {
         const requiredEnvVars = [
-            'VITE_API_URL',
             'VITE_SUPABASE_URL',
             'VITE_SUPABASE_ANON_KEY',
-            'VITE_ENV',
         ];
 
         const missing = requiredEnvVars.filter((key) => !env[key]);
