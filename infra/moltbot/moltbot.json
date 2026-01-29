@@ -1,0 +1,153 @@
+{
+    "$schema": "https://moltbot.dev/schema/moltbot.json",
+    "version": "1.0",
+    "gateway": {
+        "port": 18789,
+        "bind": "loopback",
+        "auth": {
+            "mode": "token",
+            "token": "${MOLTBOT_GATEWAY_TOKEN}"
+        }
+    },
+    "hooks": {
+        "enabled": true,
+        "path": "/hooks",
+        "auth": {
+            "mode": "token",
+            "token": "${MOLTBOT_WEBHOOK_TOKEN}"
+        }
+    },
+    "channels": {
+        "whatsapp": {
+            "enabled": true,
+            "dmPolicy": "pairing",
+            "apiProvider": "meta",
+            "token": "${WHATSAPP_API_TOKEN}"
+        },
+        "telegram": {
+            "enabled": true,
+            "dmPolicy": "pairing",
+            "botToken": "${TELEGRAM_BOT_TOKEN}"
+        },
+        "webchat": {
+            "enabled": true,
+            "dmPolicy": "open"
+        }
+    },
+    "agents": {
+        "list": [
+            {
+                "id": "poster-agent",
+                "name": "Dar Poster Assistant",
+                "prompt": "./agents/poster/AGENTS.md",
+                "sandbox": true,
+                "tools": [
+                    "listing.validate",
+                    "notify.whatsapp"
+                ]
+            },
+            {
+                "id": "seeker-agent",
+                "name": "Dar Property Search",
+                "prompt": "./agents/seeker/AGENTS.md",
+                "sandbox": true,
+                "tools": [
+                    "listing.search",
+                    "viewing.schedule",
+                    "notify.telegram"
+                ]
+            },
+            {
+                "id": "admin-agent",
+                "name": "Dar Admin",
+                "prompt": "./agents/admin/AGENTS.md",
+                "sandbox": false,
+                "default": true,
+                "tools": [
+                    "listing.validate",
+                    "listing.dedupe",
+                    "admin.queue",
+                    "admin.decision",
+                    "notify.whatsapp",
+                    "notify.telegram"
+                ]
+            }
+        ],
+        "defaults": {
+            "model": "gemini-2.0-flash",
+            "fallbackModel": "gpt-4o-mini",
+            "maxTokens": 4096
+        }
+    },
+    "bindings": [
+        {
+            "channel": "whatsapp",
+            "type": "dm",
+            "agent": "poster-agent"
+        },
+        {
+            "channel": "telegram",
+            "type": "dm",
+            "agent": "seeker-agent"
+        },
+        {
+            "channel": "webchat",
+            "type": "any",
+            "agent": "admin-agent"
+        }
+    ],
+    "tools": {
+        "backend": {
+            "baseUrl": "${DAR_BACKEND_URL}",
+            "auth": {
+                "mode": "bearer",
+                "token": "service:${SERVICE_TOKEN}"
+            }
+        },
+        "definitions": [
+            {
+                "name": "listing.validate",
+                "endpoint": "POST /api/tools/listing/validate"
+            },
+            {
+                "name": "listing.dedupe",
+                "endpoint": "POST /api/tools/listing/dedupe"
+            },
+            {
+                "name": "listing.search",
+                "endpoint": "GET /api/listings/search"
+            },
+            {
+                "name": "viewing.schedule",
+                "endpoint": "POST /api/viewings"
+            },
+            {
+                "name": "admin.queue",
+                "endpoint": "GET /api/tools/admin/review-queue"
+            },
+            {
+                "name": "admin.decision",
+                "endpoint": "POST /api/tools/admin/decision"
+            },
+            {
+                "name": "notify.whatsapp",
+                "endpoint": "POST /api/notifications/whatsapp"
+            },
+            {
+                "name": "notify.telegram",
+                "endpoint": "POST /api/notifications/telegram"
+            }
+        ]
+    },
+    "security": {
+        "pairing": {
+            "enabled": true,
+            "approvalRequired": true,
+            "expiryMinutes": 10
+        },
+        "rateLimit": {
+            "messagesPerMinute": 20,
+            "messagesPerHour": 200
+        }
+    }
+}

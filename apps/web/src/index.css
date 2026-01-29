@@ -1,0 +1,247 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =============================================================================
+   MIDNIGHT SAVORY DESIGN TOKENS
+   ============================================================================= */
+
+:root {
+  /* Colors - Midnight Savory Palette */
+  --bg-midnight: #1A1A2E;
+  --glass-bg: rgba(0, 0, 0, 0.40);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --clay-card: #16213E;
+  --clay-action: #FF6B6B;
+  --text-main: #F8F8F8;
+  --text-muted: rgba(248, 248, 248, 0.72);
+  --text-secondary: rgba(248, 248, 248, 0.60);
+  --status-pending: #FFCC00;
+  --status-ready: #00E676;
+
+  /* Radius */
+  --radius: 28px;
+  --radius-sm: 14px;
+  --radius-full: 9999px;
+
+  /* Clay Shadows */
+  --clay-shadow-drop: 0 18px 40px rgba(0, 0, 0, 0.55);
+  --clay-inset-light: inset 10px 10px 18px rgba(255, 255, 255, 0.06);
+  --clay-inset-dark: inset -12px -12px 18px rgba(0, 0, 0, 0.35);
+  --clay-edge: 1px solid rgba(255, 255, 255, 0.08);
+
+  /* Glass */
+  --glass-blur: 18px;
+  --glass-border-color: rgba(255, 255, 255, 0.12);
+  --glass-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+
+  /* Layout */
+  --bento-gap: 14px;
+  --min-card-h: 120px;
+
+  /* Focus */
+  --focus-ring: 0 0 0 3px rgba(255, 107, 107, 0.5);
+
+  /* Motion (respects reduce-motion) */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* =============================================================================
+   BASE STYLES
+   ============================================================================= */
+
+body {
+  background-color: var(--bg-midnight);
+  color: var(--text-main);
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* =============================================================================
+   GLASSMORPHISM UTILITIES
+   ============================================================================= */
+
+.glass-panel {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border-color);
+  box-shadow: var(--glass-shadow);
+}
+
+/* =============================================================================
+   CLAYMORPHISM UTILITIES
+   ============================================================================= */
+
+.clay-card {
+  background-color: var(--clay-card);
+  border-radius: var(--radius);
+  box-shadow: var(--clay-shadow-drop), var(--clay-inset-dark), var(--clay-inset-light);
+  border: var(--clay-edge);
+}
+
+.clay-inset {
+  box-shadow: var(--clay-inset-dark), var(--clay-inset-light);
+}
+
+/* =============================================================================
+   ACCESSIBILITY - FOCUS STATES
+   ============================================================================= */
+
+/* High-contrast focus ring for keyboard navigation */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Remove default focus for mouse users */
+:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+/* Ensure minimum touch target size (44px) */
+.touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
+/* Skip link for screen readers */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 1rem 2rem;
+  background: var(--clay-action);
+  color: white;
+  border-radius: var(--radius-sm);
+  z-index: 9999;
+  transition: top var(--duration-fast) var(--ease-smooth);
+}
+
+.skip-link:focus {
+  top: 1rem;
+}
+
+/* =============================================================================
+   REDUCE MOTION PREFERENCES
+   ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Override framer-motion animations */
+  [data-framer-component-type] {
+    transition: none !important;
+  }
+}
+
+/* =============================================================================
+   STATUS CHIPS
+   ============================================================================= */
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-chip--pending {
+  background: rgba(255, 204, 0, 0.14);
+  color: var(--status-pending);
+}
+
+.status-chip--ready {
+  background: rgba(0, 230, 118, 0.16);
+  color: var(--status-ready);
+}
+
+/* =============================================================================
+   CUSTOM SCROLLBAR
+   ============================================================================= */
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* =============================================================================
+   ANIMATION KEYFRAMES
+   ============================================================================= */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(0);
+  }
+
+  to {
+    transform: translateY(100%);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn var(--duration-normal) var(--ease-smooth);
+}
+
+.animate-slide-up {
+  animation: slideUp var(--duration-slow) var(--ease-spring);
+}

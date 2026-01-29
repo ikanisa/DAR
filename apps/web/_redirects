@@ -1,0 +1,11 @@
+/vendors /vendors/index.html 200
+/vendors/* /vendors/:splat 200
+/vendor/* /vendor/:splat/index.html 200
+/listings /listings/index.html 200
+/listing/* /listing/:splat/index.html 200
+/requests /requests/index.html 200
+/request/* /request/:splat/index.html 200
+/categories/* /categories/:splat/index.html 200
+/locations/* /locations/:splat/index.html 200
+/search /search/index.html 200
+/* /index.html 200

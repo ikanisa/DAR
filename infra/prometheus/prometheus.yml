@@ -1,0 +1,22 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers: []
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Dar Backend API metrics
+  - job_name: 'dar-backend'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['backend:3001']
+    metrics_path: /metrics
+    scheme: http

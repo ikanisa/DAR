@@ -1,0 +1,57 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": [
+        "thought",
+        "action",
+        "params"
+    ],
+    "properties": {
+        "thought": {
+            "type": "string",
+            "description": "Reasoning for the chosen action, analyzing user intent and context."
+        },
+        "action": {
+            "type": "string",
+            "enum": [
+                "ask_user",
+                "update_post",
+                "post_now",
+                "create_or_update_listing",
+                "publish_listing",
+                "show_listings",
+                "inquire_listing",
+                "suggest_matches",
+                "notify_top_targets",
+                "show_feed_options",
+                "moderate_or_block"
+            ]
+        },
+        "params": {
+            "type": "object",
+            "description": "Parameters for the chosen action. Schema varies by action.",
+            "properties": {
+                "message": {
+                    "type": "string",
+                    "description": "For ask_user/show_* actions"
+                },
+                "patch": {
+                    "type": "object",
+                    "description": "For update_post/listing"
+                },
+                "post_id": {
+                    "type": "string"
+                },
+                "listing_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "candidates": {
+                    "type": "array"
+                }
+            }
+        }
+    }
+}

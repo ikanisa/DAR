@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: dar-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dar}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      POSTGRES_DB: ${POSTGRES_DB:-dar}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dar}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Dar Backend API
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: dar-backend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgres://${POSTGRES_USER:-dar}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-dar}
+      JWT_SECRET: ${JWT_SECRET:?required}
+      SERVICE_TOKEN: ${SERVICE_TOKEN:?required}
+      MOLTBOT_GATEWAY_URL: http://moltbot:18789
+      MOLTBOT_GATEWAY_TOKEN: ${MOLTBOT_GATEWAY_TOKEN:?required}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Moltbot Gateway
+  moltbot:
+    image: moltbot/gateway:latest
+    container_name: dar-moltbot
+    restart: unless-stopped
+    environment:
+      MOLTBOT_GATEWAY_TOKEN: ${MOLTBOT_GATEWAY_TOKEN:?required}
+      MOLTBOT_WEBHOOK_TOKEN: ${MOLTBOT_WEBHOOK_TOKEN:?required}
+      DAR_BACKEND_URL: http://backend:3001
+      SERVICE_TOKEN: ${SERVICE_TOKEN}
+      WHATSAPP_API_TOKEN: ${WHATSAPP_API_TOKEN}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+    volumes:
+      - ./infra/moltbot:/config:ro
+    command: ["gateway", "start", "--config", "/config/moltbot.json"]
+    ports:
+      - "18789:18789"
+    depends_on:
+      - backend
+
+  # Prometheus (for metrics)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: dar-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+    depends_on:
+      - backend
+
+  # Grafana (optional, for dashboards)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: dar-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infra/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./infra/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: dar-network

@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /chat
+Disallow: /notifications
+Disallow: /inbox
+Disallow: /me/
+Disallow: /draft/
+Sitemap: https://dar.ikanisa.com/sitemap.xml
